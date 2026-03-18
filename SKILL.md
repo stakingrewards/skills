@@ -170,6 +170,16 @@ curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
   https://api.stakingrewards.com/public/billing/status
 ```
 
+**Check credits used per request:**
+
+Every API response includes an `x-used-credits` header with the exact credit cost of that call:
+```bash
+curl -sD - -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  "https://api.stakingrewards.com/ratings/defi?limit=3" -o /dev/null \
+  | grep x-used-credits
+# x-used-credits: 132
+```
+
 ### Common Metric Keys
 
 **Asset metrics:** `price`, `reward_rate`, `real_reward_rate`, `staked_tokens`, `staking_marketcap`, `staking_ratio`, `marketcap`, `inflation_rate`, `active_validators`, `total_validators`, `net_staking_flow_7d`, `daily_trading_volume`
