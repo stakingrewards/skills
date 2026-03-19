@@ -123,11 +123,10 @@ curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
   https://api.stakingrewards.com/public/billing/status
 ```
 
-**Check credits used per request** (every response includes `x-used-credits` header):
+**Check credits used per request** — use `-w "%header{x-used-credits}"` to get body and credit cost in a single call:
 ```bash
-curl -sD - -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+curl -s -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
   -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi?limit=3" -o /dev/null \
-  | grep x-used-credits
-# x-used-credits: 132
+  "https://api.stakingrewards.com/ratings/defi?limit=3" \
+  -w "\nCredits used: %header{x-used-credits}"
 ```
