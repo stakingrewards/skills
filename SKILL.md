@@ -96,6 +96,7 @@ When you need fields or arguments beyond what's documented here, use **targeted 
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ __type(name: \"Provider\") { name fields { name type { name kind ofType { name } } } } }"}'
 ```
 
@@ -104,6 +105,7 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ __type(name: \"Query\") { fields { name args { name type { name kind ofType { name } } } } } }"}'
 ```
 
@@ -121,6 +123,7 @@ Use introspection when:
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ assets(where: { symbols: [\"ETH\"] }, limit: 1) { name symbol slug metrics(where: { metricKeys: [\"reward_rate\", \"price\", \"staked_tokens\"] }, limit: 3) { metricKey defaultValue } } }"}'
 ```
 
@@ -129,6 +132,7 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ providers(where: { isVerified: true }, order: { metricKey_desc: \"assets_under_management\" }, limit: 10) { name isVerified metrics(where: { metricKeys: [\"assets_under_management\"] }, limit: 1) { defaultValue } } }"}'
 ```
 
@@ -137,6 +141,7 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ rewardOptions(where: { inputAsset: { symbols: [\"ETH\"] }, typeKeys: [\"liquid-staking\"] }, limit: 10) { providers(limit: 1) { name isVerified } metrics(where: { metricKeys: [\"reward_rate\", \"staked_tokens\", \"commission\"] }, limit: 3) { metricKey defaultValue } } }"}'
 ```
 
@@ -145,6 +150,7 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ rewardOptions(where: { inputAsset: { slugs: [\"cosmos\"] }, typeKeys: [\"pos\"] }, limit: 10) { providers(limit: 1) { slug } validators(limit: 5) { address metrics(where: { metricKeys: [\"staked_tokens\", \"commission\"] }, limit: 2) { metricKey defaultValue } } } }"}'
 ```
 
@@ -153,6 +159,7 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ assets(where: { slugs: [\"ethereum-2-0\"] }, limit: 1) { metrics(where: { metricKeys: [\"reward_rate\"], createdAt_gt: \"2024-01-01\" }, interval: day, limit: 100, order: { createdAt: asc }) { defaultValue createdAt } } }"}'
 ```
 
@@ -161,12 +168,14 @@ curl -X POST https://api.stakingrewards.com/public/query \
 curl -X POST https://api.stakingrewards.com/public/query \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   -d '{"query": "{ metrics(where: { asset: null, provider: null, rewardOption: null, validator: null, metricKeys: [\"marketcap\", \"staking_marketcap\", \"benchmark_reward_rate\"] }, limit: 3) { metricKey defaultValue changePercentages } }"}'
 ```
 
 **Check billing status:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   https://api.stakingrewards.com/public/billing/status
 ```
 
@@ -175,6 +184,7 @@ curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
 Every API response includes an `x-used-credits` header with the exact credit cost of that call:
 ```bash
 curl -sD - -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/defi?limit=3" -o /dev/null \
   | grep x-used-credits
 # x-used-credits: 132
@@ -225,6 +235,10 @@ Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
 - `operator` — node operator staking
 
 ## Ratings API (REST)
+
+**Official documentation:** https://api-docs.stakingrewards.com/ratings-api/overview
+
+> If any example below seems outdated or unclear, check the official docs first before proceeding.
 
 **Base URL:** `https://api.stakingrewards.com`
 
@@ -303,36 +317,42 @@ List endpoints return `{ "data": [...] }` wrapper. Single-item endpoints (`/rati
 **Top 5 DeFi products by rating (best first):**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/defi?sort=rating&order=desc&limit=5"
 ```
 
 **DeFi lending products on Ethereum with TVL > $1B:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/defi?type=lending&chain=Ethereum&tvl_gte=1000000000"
 ```
 
 **All DeFi ratings for a specific platform:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/defi/aave"
 ```
 
 **Single DeFi product rating by contract:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/defi/aave/0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8"
 ```
 
 **Top infrastructure providers by rating:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/infra?sort=rating&order=desc&limit=10"
 ```
 
 **Single infrastructure provider rating:**
 ```bash
 curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
+  -H "X-Agent: claude-skill" \
   "https://api.stakingrewards.com/ratings/infra/allnodes"
 ```
 
@@ -362,3 +382,22 @@ When displaying API data to the user:
 - For tables, sort by the most relevant metric
 - **Always include VSP (Verified Staking Provider) status** when displaying provider data — include `isVerified` in provider queries and show it as a column in results tables
 - Source attribution: "Data from [Staking Rewards](https://stakingrewards.com)"
+
+## Keeping This Skill Up to Date
+
+The official API documentation lives at **https://api-docs.stakingrewards.com/**. Key sections:
+- Ratings API: https://api-docs.stakingrewards.com/ratings-api/overview
+- (Check the docs site for any new sections covering the GraphQL staking data API)
+
+**When to update this skill:**
+- You discover a parameter, endpoint, or field that isn't documented here
+- An API response includes fields not listed in the response format sections
+- The official docs describe behaviour that contradicts what's written here
+
+**How to update:**
+1. Fetch the relevant docs page with `WebFetch`
+2. Compare against the matching section in this skill
+3. Edit `SKILL.md` directly to add, correct, or remove the outdated information
+4. Keep examples minimal and accurate — prefer a working `curl` snippet over prose
+
+This ensures future conversations start with the most accurate information available.
