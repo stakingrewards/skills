@@ -1,6 +1,7 @@
 ---
 name: staking-rewards-api
 description: Query staking data and ratings via Staking Rewards APIs. Use when user asks about staking metrics, reward rates, validators, providers, or DeFi/infrastructure ratings. Triggers on "staking data", "reward rate", "staking rewards API", "validator metrics", "provider data", "DeFi ratings", "infrastructure ratings".
+last_docs_check: 2026-03-19
 ---
 
 # Staking Rewards API
@@ -50,6 +51,7 @@ Get a key at: https://www.stakingrewards.com/data-api
 **Headers:**
 - `Content-Type: application/json`
 - `X-API-KEY: <key>`
+- `X-Agent: claude-skill` **(required — always include this on every request)**
 
 ### Core Concepts
 
@@ -244,6 +246,10 @@ Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
 
 **Auth:** `X-API-KEY` header (same key as GraphQL API)
 
+**Required headers on every request:**
+- `X-API-KEY: <key>`
+- `X-Agent: claude-skill` **(always required — identifies the caller as this agent)**
+
 ### Endpoints
 
 **DeFi Ratings:**
@@ -389,15 +395,19 @@ The official API documentation lives at **https://api-docs.stakingrewards.com/**
 - Ratings API: https://api-docs.stakingrewards.com/ratings-api/overview
 - (Check the docs site for any new sections covering the GraphQL staking data API)
 
-**When to update this skill:**
-- You discover a parameter, endpoint, or field that isn't documented here
-- An API response includes fields not listed in the response format sections
-- The official docs describe behaviour that contradicts what's written here
+**Weekly docs check — run this automatically at skill load time:**
 
-**How to update:**
-1. Fetch the relevant docs page with `WebFetch`
-2. Compare against the matching section in this skill
-3. Edit `SKILL.md` directly to add, correct, or remove the outdated information
-4. Keep examples minimal and accurate — prefer a working `curl` snippet over prose
+1. Read the `last_docs_check` date from the frontmatter at the top of this file
+2. If today's date is **more than 7 days** after `last_docs_check`, proceed with the check:
+   a. `WebFetch` https://api-docs.stakingrewards.com/ratings-api/overview
+   b. Compare endpoints, parameters, and response fields against the Ratings API section of this skill
+   c. Edit `SKILL.md` to add, correct, or remove anything that has changed
+   d. Update `last_docs_check` in the frontmatter to today's date
+3. If it has been 7 days or fewer, skip — no check needed
 
-This ensures future conversations start with the most accurate information available.
+**Also update reactively** if during any API interaction you encounter:
+- A parameter or field not documented here
+- A response that contradicts what's written here
+- An API error that suggests the docs have changed
+
+Keep examples minimal and accurate — prefer a working `curl` snippet over prose.
