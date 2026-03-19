@@ -1,6 +1,6 @@
 ---
 name: staking-rewards-api
-description: This skill should be used when the user asks about staking metrics, reward rates, validators, staking providers, TVL, or DeFi/infrastructure risk ratings from the Staking Rewards platform. It covers querying the Staking Rewards GraphQL API for live staking data and the REST Ratings API for letter-grade safety assessments. Triggers on phrases like "what is the staking reward rate for", "show me validators for", "compare liquid staking providers", "what is the TVL of", "total value locked", "DeFi safety rating", "infrastructure provider grade", "how do I use the Staking Rewards API", or "write code to fetch staking data".
+description: This skill should be used when the user asks about staking metrics, reward rates, validators, staking providers, TVL, or DeFi/infrastructure risk ratings from the Staking Rewards platform. It covers querying the Staking Rewards GraphQL API for live staking data and the REST Ratings API for letter-grade safety assessments. Triggers on phrases like "top defi protocols", "best defi protocols", "list defi protocols", "show defi ratings", "what is the staking reward rate for", "show me validators for", "compare liquid staking providers", "what is the TVL of", "total value locked", "DeFi safety rating", "infrastructure provider grade", "how do I use the Staking Rewards API", or "write code to fetch staking data".
 ---
 
 # Staking Rewards API
@@ -55,7 +55,7 @@ Get a key at: https://www.stakingrewards.com/data-api
 - `X-API-KEY: <key>`
 - `X-Agent: claude-skill` **(always include — identifies the caller as this agent)**
 
-Every response includes an `x-used-credits` header with the credit cost of that call — read it and display it with results.
+Every response includes an `x-used-credits` header with the credit cost — read it and display it with results. Use `-w "%header{x-used-credits}"` in curl to get body and credits in a single request (do NOT make a separate request just to read headers).
 
 ### Core Concepts
 
@@ -129,7 +129,7 @@ See `references/metric-keys.md` for common metric keys by type, reward option ty
 - `X-API-KEY: <key>`
 - `X-Agent: claude-skill` **(always include — identifies the caller as this agent)**
 
-Every response includes an `x-used-credits` header with the credit cost of that call — read it and display it with results.
+Every response includes an `x-used-credits` header with the credit cost — read it and display it with results. Use `-w "%header{x-used-credits}"` in curl to get body and credits in a single request (do NOT make a separate request just to read headers).
 
 ### Endpoints
 
