@@ -1,20 +1,11 @@
 ---
 name: staking-rewards-api
-description: Query staking data and ratings via Staking Rewards APIs. Use when user asks about staking metrics, reward rates, validators, providers, or DeFi/infrastructure ratings. Triggers on "staking data", "reward rate", "staking rewards API", "validator metrics", "provider data", "DeFi ratings", "infrastructure ratings".
-last_docs_check: 2026-03-19
+description: This skill should be used when the user asks about staking metrics, reward rates, validators, staking providers, TVL, or DeFi/infrastructure risk ratings from the Staking Rewards platform. It covers querying the Staking Rewards GraphQL API for live staking data and the REST Ratings API for letter-grade safety assessments. Triggers on phrases like "what is the staking reward rate for", "show me validators for", "compare liquid staking providers", "what is the TVL of", "total value locked", "DeFi safety rating", "infrastructure provider grade", "how do I use the Staking Rewards API", or "write code to fetch staking data".
 ---
 
 # Staking Rewards API
 
 Query staking data (GraphQL) and ratings (REST) from the Staking Rewards APIs.
-
-## When to use
-
-Use this skill when the user asks about:
-- Staking metrics, reward rates, prices, validators, providers, or TVL
-- DeFi or infrastructure ratings, risk scores, or letter grades
-- Historical staking data or ecosystem-level metrics
-- Writing integration code against the Staking Rewards API
 
 ## Instructions
 
@@ -22,7 +13,18 @@ Use this skill when the user asks about:
 2. Check for an API key (environment variable, `.env` file, or ask the user)
 3. Construct the appropriate query (GraphQL for staking data, REST for ratings)
 4. Follow the critical rules for each API (e.g., `limit` is always required for GraphQL)
-5. Present results in a well-formatted table with proper units and labels
+5. Present results in a well-formatted table with proper units and labels (see Presenting Results)
+
+## Presenting Results
+
+When displaying API data to the user:
+- **Always include VSP (Verified Staking Provider) status** when displaying provider data — include `isVerified` in provider queries and show it as a column in results tables
+- Format numbers with appropriate precision (prices to 2 decimals, percentages to 2 decimals)
+- Show metric labels not just keys (e.g., "Reward Rate" not "reward_rate")
+- Include units where relevant (USD, %, tokens)
+- For tables, sort by the most relevant metric
+- Show the credit cost of the request — read the `x-used-credits` response header and display it alongside the results (e.g., "Credits used: 132")
+- Source attribution: "Data from [Staking Rewards](https://stakingrewards.com)"
 
 ## API Routing
 
@@ -51,7 +53,9 @@ Get a key at: https://www.stakingrewards.com/data-api
 **Headers:**
 - `Content-Type: application/json`
 - `X-API-KEY: <key>`
-- `X-Agent: claude-skill` **(required — always include this on every request)**
+- `X-Agent: claude-skill` **(always include — identifies the caller as this agent)**
+
+Every response includes an `x-used-credits` header with the credit cost of that call — read it and display it with results.
 
 ### Core Concepts
 
@@ -74,6 +78,7 @@ Providers <-- Reward Options --> Validators
     v              v                 v
  Metrics        Metrics           Metrics
 ```
+_Reward Options are the join table connecting Assets, Providers, and Validators._
 
 - Reward Options are the central hub connecting Assets, Providers, and Validators
 - Assets connect to Providers/Validators ONLY through Reward Options
@@ -93,148 +98,22 @@ Providers <-- Reward Options --> Validators
 
 When you need fields or arguments beyond what's documented here, use **targeted introspection** rather than guessing. Do NOT fetch the full schema — query only the specific type you need.
 
-**Discover fields on a type:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ __type(name: \"Provider\") { name fields { name type { name kind ofType { name } } } } }"}'
-```
-
-**Discover arguments on a query:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ __type(name: \"Query\") { fields { name args { name type { name kind ofType { name } } } } } }"}'
-```
-
-**Available type names:** `Asset`, `Provider`, `Validator`, `RewardOption`, `Metric`, `Query`
-
 Use introspection when:
 - You need a field you're not sure exists (e.g., `logoUrl`, `country`, `vspScoreBreakdown`)
 - You want to check available filter arguments on a query
-- The user asks for data not covered by the common metric keys below
+- The user asks for data not covered by the common metric keys
 
-### Common Queries
+See `references/graphql-examples.md` for introspection curl commands and ready-to-run query examples.
 
-**Get asset data with metrics:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ assets(where: { symbols: [\"ETH\"] }, limit: 1) { name symbol slug metrics(where: { metricKeys: [\"reward_rate\", \"price\", \"staked_tokens\"] }, limit: 3) { metricKey defaultValue } } }"}'
-```
+### Additional Queries
 
-**Get providers with AUM:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ providers(where: { isVerified: true }, order: { metricKey_desc: \"assets_under_management\" }, limit: 10) { name isVerified metrics(where: { metricKeys: [\"assets_under_management\"] }, limit: 1) { defaultValue } } }"}'
-```
+**`search`** — full-text search across assets, providers, and validators. Returns `entityType`, `entityID`, and `entityMeta` (JSON string with `name`, `slug`, `logo_url`, and type-specific fields). Useful for resolving a name to a slug before querying. Supports `providerIsVerified` and `providerIsClaimed` filters.
 
-**Get reward options for an asset:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ rewardOptions(where: { inputAsset: { symbols: [\"ETH\"] }, typeKeys: [\"liquid-staking\"] }, limit: 10) { providers(limit: 1) { name isVerified } metrics(where: { metricKeys: [\"reward_rate\", \"staked_tokens\", \"commission\"] }, limit: 3) { metricKey defaultValue } } }"}'
-```
+**`rewardOptionTypes`** — returns the live list of all valid reward option type keys as strings. Use this instead of the static list in `references/metric-keys.md` if you need to confirm available types.
 
-**Get validators for an asset via reward options:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ rewardOptions(where: { inputAsset: { slugs: [\"cosmos\"] }, typeKeys: [\"pos\"] }, limit: 10) { providers(limit: 1) { slug } validators(limit: 5) { address metrics(where: { metricKeys: [\"staked_tokens\", \"commission\"] }, limit: 2) { metricKey defaultValue } } } }"}'
-```
+### Metric Keys and Filters
 
-**Get historical data:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ assets(where: { slugs: [\"ethereum-2-0\"] }, limit: 1) { metrics(where: { metricKeys: [\"reward_rate\"], createdAt_gt: \"2024-01-01\" }, interval: day, limit: 100, order: { createdAt: asc }) { defaultValue createdAt } } }"}'
-```
-
-**Get global ecosystem metrics:**
-```bash
-curl -X POST https://api.stakingrewards.com/public/query \
-  -H "Content-Type: application/json" \
-  -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  -d '{"query": "{ metrics(where: { asset: null, provider: null, rewardOption: null, validator: null, metricKeys: [\"marketcap\", \"staking_marketcap\", \"benchmark_reward_rate\"] }, limit: 3) { metricKey defaultValue changePercentages } }"}'
-```
-
-**Check billing status:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  https://api.stakingrewards.com/public/billing/status
-```
-
-**Check credits used per request:**
-
-Every API response includes an `x-used-credits` header with the exact credit cost of that call:
-```bash
-curl -sD - -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi?limit=3" -o /dev/null \
-  | grep x-used-credits
-# x-used-credits: 132
-```
-
-### Common Metric Keys
-
-**Asset metrics:** `price`, `reward_rate`, `real_reward_rate`, `staked_tokens`, `staking_marketcap`, `staking_ratio`, `marketcap`, `inflation_rate`, `active_validators`, `total_validators`, `net_staking_flow_7d`, `daily_trading_volume`
-
-**Provider metrics:** `assets_under_management`, `commission`, `staking_wallets`, `provider_aum_change_7d`
-
-**Validator metrics:** `commission`, `delegated_tokens`, `reward_rate`, `staked_tokens`, `staking_share`, `staking_wallets`
-
-**Reward option metrics:** `reward_rate`, `commission`, `staked_tokens`, `staking_share`, `delegated_tokens`, `net_staking_flow_7d`, `staking_wallets`
-
-**Global metrics:** `marketcap`, `staking_marketcap`, `benchmark_reward_rate`, `benchmark_staking_ratio`, `crypto_gdp`, `net_staking_flow_7d`, `pos_flippening_pow`
-
-### Sorting
-
-Use `order` argument:
-- `{ name: asc }` or `{ name: desc }` — alphabetical
-- `{ metricKey_desc: "staked_tokens" }` — by metric value
-- `{ metricKey_desc: "staking_marketcap", changePercentagesKey: _30d }` — by metric change
-
-Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
-
-### Date Filters (for historical)
-
-- `createdAt_gt` — after date
-- `createdAt_lt` — before date
-- `createdAt_gte` / `createdAt_lte` — inclusive
-- Format: `YYYY-MM-DD`
-
-### Intervals (for historical)
-
-`hour`, `day`, `week`, `month`, `quarter`
-
-### Reward Option Type Keys
-
-- `pos` — native proof-of-stake (direct delegation)
-- `liquid-staking` — liquid staking tokens (stETH, rETH, etc.)
-- `smart-contract` — DeFi protocol interactions
-- `custodial` — custodial/exchange staking
-- `staking-pool` — pooled staking services
-- `dual-staking` — native restaking
-- `lending` — lending/borrowing protocols
-- `vault` — vault strategies
-- `operator` — node operator staking
+See `references/metric-keys.md` for common metric keys by type, reward option type keys, sorting options, date filters, interval values, and advanced `metrics` query args.
 
 ## Ratings API (REST)
 
@@ -248,7 +127,9 @@ Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
 
 **Required headers on every request:**
 - `X-API-KEY: <key>`
-- `X-Agent: claude-skill` **(always required — identifies the caller as this agent)**
+- `X-Agent: claude-skill` **(always include — identifies the caller as this agent)**
+
+Every response includes an `x-used-credits` header with the credit cost of that call — read it and display it with results.
 
 ### Endpoints
 
@@ -259,12 +140,13 @@ Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
 | GET | `/ratings/defi` | List all DeFi product ratings |
 | GET | `/ratings/defi/{provider_slug}` | List DeFi ratings for a specific platform |
 | GET | `/ratings/defi/{provider_slug}/{contract_address}` | Get single DeFi product rating |
+| GET | `/ratings/defi/chains` | List all valid chain slugs for the `chain` filter |
 
 **DeFi list query parameters:**
 - `sort` — `rating`, `rated_at`, `rated_since`, `name`, `tvl`, `apy`, `users` (sort field)
 - `order` — `asc` or `desc` (default: `asc`)
 - `type` — `lending`, `vault`, `lst`, `liquid-staking`, `hosting`, `smart-contract`
-- `chain` — blockchain name (e.g., `base`, `optimism`, `polygon`)
+- `chain` — chain slug from `/ratings/defi/chains` (e.g., `ethereum-2-0`, `base`, `solana`); note: the response `chain` field returns the display name, not the slug
 - `version` — rating methodology version (e.g., `v2.0`)
 - `tvl_gte` / `tvl_lte` — filter by TVL range
 - `apy_gte` / `apy_lte` — filter by APY range
@@ -294,73 +176,7 @@ Time periods for change sorting: `_24h`, `_7d`, `_30d`, `_90d`, `_1y`
 
 List endpoints return `{ "data": [...] }` wrapper. Single-item endpoints (`/ratings/defi/{platform}/{contract}`, `/ratings/infra/{slug}`) return a bare object.
 
-**DeFi rating object fields:**
-- `name` — product name (e.g., "Aave v3 WETH")
-- `provider_name` — protocol name (e.g., "Aave")
-- `version` — rating version (e.g., "v0.1-alpha-preview")
-- `type` — product type: `lending`, `vault`, `liquid-staking`, etc.
-- `chain` — blockchain (e.g., "Ethereum")
-- `contract_address` — on-chain contract address
-- `rating` — overall letter grade (e.g., "A")
-- `potential_rating` — best achievable rating (e.g., "AA+")
-- `rated_at` / `rated_since` — dates (YYYY-MM-DD)
-- `profile_url` — link to Staking Rewards profile page
-- `risk_metrics` — object with `apy` (%), `tvl` (USD), `users` (count)
-- `rating_data` — breakdown by category: `operations` (documentation, financial resilience, governance, team/legal), `security` (key management, smart contracts), `strategy` (collateral, liquidity, market, counterparty)
-- `potential_rating_data` — same structure as `rating_data` with potential scores
-
-**Infrastructure rating object fields:**
-- `name` — provider slug (e.g., "a41")
-- `version` — rating version (e.g., "v2.0")
-- `rating` — overall letter grade
-- `rated_at` / `rated_since` — dates (YYYY-MM-DD)
-- `profile_url` — link to Staking Rewards profile page
-- `report_url` — link to full report (if available)
-- `rating_data` — breakdown: `business_operations` (delegator protection, general info, resilience), `reliability` (on-chain metrics, validator maintenance), `security_setup` (infrastructure, internal policies)
-
-### Example Requests
-
-**Top 5 DeFi products by rating (best first):**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi?sort=rating&order=desc&limit=5"
-```
-
-**DeFi lending products on Ethereum with TVL > $1B:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi?type=lending&chain=Ethereum&tvl_gte=1000000000"
-```
-
-**All DeFi ratings for a specific platform:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi/aave"
-```
-
-**Single DeFi product rating by contract:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/defi/aave/0x4d5F47FA6A74757f35C14fD3a6Ef8E3C9BC514E8"
-```
-
-**Top infrastructure providers by rating:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/infra?sort=rating&order=desc&limit=10"
-```
-
-**Single infrastructure provider rating:**
-```bash
-curl -H "X-API-KEY: $STAKING_REWARDS_API_KEY" \
-  -H "X-Agent: claude-skill" \
-  "https://api.stakingrewards.com/ratings/infra/allnodes"
-```
+See `references/response-schemas.md` for full field documentation for DeFi and Infrastructure rating objects.
 
 ### Rating Grades
 
@@ -368,10 +184,12 @@ Both DeFi and Infrastructure use letter grades: AAA (best) → AA → A → BBB 
 
 DeFi ratings may be "preview" (version suffix `-preview`) or "full" (complete team review).
 
+See `references/ratings-api-examples.md` for ready-to-run example requests.
+
 ## Error Handling
 
 | Code | Message | Fix |
-|------|---------|-----|
+|------|-----------------------------------------------------|-------------------------------|
 | 401 | `you should be authenticated` | Check X-API-KEY header |
 | 401 | `user not found` | Invalid API key |
 | 400 | `limit field is required` | Add `limit` to query |
@@ -379,35 +197,8 @@ DeFi ratings may be "preview" (version suffix `-preview`) or "full" (complete te
 | 400 | `query path is too long. Max depth is 2` | Reduce nesting |
 | 429 | Rate limited | Wait, max 60 req/min |
 
-## Presenting Results
-
-When displaying API data to the user:
-- Format numbers with appropriate precision (prices to 2 decimals, percentages to 2 decimals)
-- Show metric labels not just keys (e.g., "Reward Rate" not "reward_rate")
-- Include units where relevant (USD, %, tokens)
-- For tables, sort by the most relevant metric
-- **Always include VSP (Verified Staking Provider) status** when displaying provider data — include `isVerified` in provider queries and show it as a column in results tables
-- Source attribution: "Data from [Staking Rewards](https://stakingrewards.com)"
-
-## Keeping This Skill Up to Date
+## Official Docs
 
 The official API documentation lives at **https://api-docs.stakingrewards.com/**. Key sections:
 - Ratings API: https://api-docs.stakingrewards.com/ratings-api/overview
-- (Check the docs site for any new sections covering the GraphQL staking data API)
-
-**Weekly docs check — run this automatically at skill load time:**
-
-1. Read the `last_docs_check` date from the frontmatter at the top of this file
-2. If today's date is **more than 7 days** after `last_docs_check`, proceed with the check:
-   a. `WebFetch` https://api-docs.stakingrewards.com/ratings-api/overview
-   b. Compare endpoints, parameters, and response fields against the Ratings API section of this skill
-   c. Edit `SKILL.md` to add, correct, or remove anything that has changed
-   d. Update `last_docs_check` in the frontmatter to today's date
-3. If it has been 7 days or fewer, skip — no check needed
-
-**Also update reactively** if during any API interaction you encounter:
-- A parameter or field not documented here
-- A response that contradicts what's written here
-- An API error that suggests the docs have changed
-
-Keep examples minimal and accurate — prefer a working `curl` snippet over prose.
+- GraphQL staking data API (schema & objects): https://api-docs.stakingrewards.com/staking-data-api/schema-and-objects — for exploring available types and fields; schema introspection (see `references/graphql-examples.md`) is often faster for targeted lookups
